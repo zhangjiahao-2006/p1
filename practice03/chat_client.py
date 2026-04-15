@@ -373,6 +373,53 @@ def call_llm(messages, base_url, model, api_key, temperature, max_tokens):
     finally:
         conn.close()
 
+def get_chat_history_length(chat_history):
+    """计算聊天历史的总长度"""
+    total_length = 0
+    for message in chat_history:
+        if message['role'] != 'system':  # 不计算系统提示词
+            total_length += len(message['content'])
+    return total_length
+
+def summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens):
+    """总结聊天历史"""
+    # 提取需要总结的部分（前70%）
+    non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    if len(non_system_messages) <= 2:
+        return chat_history
+    
+    # 计算分割点
+    split_point = int(len(non_system_messages) * 0.7)
+    messages_to_summarize = non_system_messages[:split_point]
+    messages_to_keep = non_system_messages[split_point:]
+    
+    # 构建总结提示
+    summary_prompt = "请总结以下聊天记录，保持关键信息和对话脉络：\n\n"
+    for msg in messages_to_summarize:
+        role = "用户" if msg['role'] == "user" else "AI"
+        summary_prompt += f"{role}: {msg['content']}\n\n"
+    
+    # 调用LLM进行总结
+    summary_messages = [
+        {"role": "system", "content": "你是一个专业的对话总结助手，请简洁明了地总结对话内容。"},
+        {"role": "user", "content": summary_prompt}
+    ]
+    
+    print("\n[正在总结聊天历史...]")
+    summary = call_llm(summary_messages, base_url, model, api_key, temperature, max_tokens)
+    
+    # 构建新的聊天历史
+    new_chat_history = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "assistant", "content": f"[聊天历史总结]\n{summary}"}
+    ]
+    
+    # 添加保留的消息
+    new_chat_history.extend(messages_to_keep)
+    
+    print("[聊天历史总结完成]")
+    return new_chat_history
+
 def main():
     env = load_env()
 
@@ -404,6 +451,13 @@ def main():
                 break
 
             chat_history.append({"role": "user", "content": user_input})
+
+            # 检查是否需要压缩聊天历史
+            non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+            chat_length = get_chat_history_length(chat_history)
+            
+            if len(non_system_messages) > 10 or chat_length > 3000:  # 超过5轮对话（每轮包含用户和AI消息）或长度超过3k
+                chat_history = summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens)
 
             max_iterations = 10
             iteration = 0

@@ -1,0 +1,90 @@
+[
+  {
+    "role": "system",
+    "content": "你是一个智能助手，可以通过工具调用来帮助用户完成文件操作任务和网络访问任务。\n\n你可以使用以下工具来帮助用户:\n\n1. list_directory(directory_path)\n   - 功能: 列出某个目录下的所有文件和文件夹，包括基本属性、大小等信息\n   - 参数: directory_path (字符串) - 目录路径\n\n2. rename_file(directory_path, old_name, new_name)\n   - 功能: 修改某个目录下某个文件的名字\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - old_name (字符串) - 原文件名\n     - new_name (字符串) - 新文件名\n\n3. delete_file(directory_path, file_name)\n   - 功能: 删除某个目录下的某个文件\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 要删除的文件名\n\n4. create_file(directory_path, file_name, content)\n   - 功能: 在某个目录下新建一个文件，并且写入内容\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 文件名\n     - content (字符串) - 文件内容\n\n5. read_file(directory_path, file_name)\n   - 功能: 读取某个目录下的某个文件的内容\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 文件名\n\n6. curl_fetch(url, method, headers, data, timeout)\n   - 功能: 通过curl访问网页并返回网页内容\n   - 参数:\n     - url (字符串) - 要访问的网页URL\n     - method (字符串) - HTTP方法，默认GET\n     - headers (字典) - HTTP请求头\n     - data (字符串) - POST请求的数据\n     - timeout (整数) - 超时时间（秒），默认30\n\n当你需要使用工具时，请在回复中包含以下格式的工具调用指令:\n\n[TOOL_CALL]\n{\n  \"name\": \"函数名\",\n  \"arguments\": {\n    \"参数名\": \"参数值\"\n  }\n}\n[/TOOL_CALL]\n\n请注意:\n- 请根据用户需求选择合适的工具\n- 如果需要多个工具调用，可以依次调用\n- 在执行文件操作前，请确保路径和文件名正确\n- 请友好地回复用户，解释你正在做什么"
+  },
+  {
+    "role": "user",
+    "content": "请使用curl工具访问 https://wttr.in/成都，获取成都的天气预报，然后告诉我明天的最高和最低气温"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n好的，我将使用 curl 工具访问 https://wttr.in/成都 获取天气预报信息。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 30\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl访问失败 - 'NoneType' object has no attribute 'rsplit'"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n抱歉，刚才的curl调用出现了错误。可能是网络连接问题，让我重新尝试一下访问成都的天气预报。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都?format=%2F%2F\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 30\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n网页访问结果 (HTTP 200):\n==================================================\nURL: https://wttr.in/成都?format=%2F%2F\n==================================================\n//\n=================================================="
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n看起来刚才的curl请求返回的信息不够详细。让我尝试使用wttr.in支持的特定格式参数来获取成都的天气预报信息，特别是明天的最高和最低气温。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都?format=%2F%2F&units=C\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 30\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl执行失败 - 'units' 不是内部或外部命令，也不是可运行的程序\n或批处理文件。\n"
+  },
+  {
+    "role": "user",
+    "content": "请使用curl工具访问 https://wttr.in/成都，获取成都的天气预报，然后告诉我明天的最高和最低气温"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n我注意到之前的尝试遇到了问题。让我重新使用标准的 curl 命令来访问成都的天气预报。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 30\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl访问失败 - 'NoneType' object has no attribute 'rsplit'"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n看起来当前的 curl 访问出现了错误，可能是环境配置问题导致无法正确解析 URL 或响应数据。让我尝试使用不同的 URL 参数格式来访问成都的天气预报。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/CHN.CPD?format=%2F%2F&units=C\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 60\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl执行失败 - 'units' 不是内部或外部命令，也不是可运行的程序\n或批处理文件。\n"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n我注意到之前的curl请求出现了错误。让我尝试使用一个更简洁的URL格式来访问成都的天气预报。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/CHN.CPD\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 30\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl访问失败 - 'NoneType' object has no attribute 'rsplit'"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n我注意到之前的curl访问出现了错误，这似乎是系统在处理响应数据时遇到的解析问题。让我再尝试一次，使用更简洁的URL格式来获取成都的天气信息。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都?format=1&units=C\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 60\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl执行失败 - 'units' 不是内部或外部命令，也不是可运行的程序\n或批处理文件。\n"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n我注意到之前的curl调用出现了系统错误，看起来可能是URL参数处理有问题。让我尝试一个更简单直接的URL格式来访问成都的天气信息。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/CHN.CPD.50m\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 60\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n错误: curl访问失败 - 'NoneType' object has no attribute 'rsplit'"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n我注意到之前的curl调用一直出现错误，这似乎是系统在处理响应数据时遇到的解析问题。让我尝试使用最简洁的格式来获取成都的天气信息。\n\n[TOOL_CALL]\n{\n  \"name\": \"curl_fetch\",\n  \"arguments\": {\n    \"url\": \"https://wttr.in/成都?format=1\",\n    \"method\": \"GET\",\n    \"headers\": {},\n    \"data\": \"\",\n    \"timeout\": 60\n  }\n}\n[/TOOL_CALL]"
+  },
+  {
+    "role": "user",
+    "content": "工具执行结果:\n网页访问结果 (HTTP 200):\n==================================================\nURL: https://wttr.in/成都?format=1\n==================================================\n馃對   +18掳C\n\n=================================================="
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n太好了！终于成功获取到了成都的天气预报信息！\n\n从返回的结果来看：\n- **当前温度**：+18°C\n\n不过，由于系统对URL参数的处理有些限制，我暂时无法获取到明天的详细最高和最低气温信息。wttr.in 网站通常会显示更完整的天气数据，包括：\n- 今天的气温范围（最低/最高）\n- 明天、后天等未来几天的天气情况\n- 空气质量、湿度、风力等信息\n\n如果您需要更详细的天气预报信息，我可以尝试使用其他方法获取完整数据，或者您可以告诉我是否需要我帮您查询其他城市的天气信息。\n\n您看这样可以吗？😊"
+  }
+]
