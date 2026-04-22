@@ -1,0 +1,26 @@
+[
+  {
+    "role": "system",
+    "content": "你是一个智能助手，可以通过工具调用来帮助用户完成文件操作任务和网络访问任务。\n\n你可以使用以下工具来帮助用户:\n\n1. list_directory(directory_path)\n   - 功能: 列出某个目录下的所有文件和文件夹，包括基本属性、大小等信息\n   - 参数: directory_path (字符串) - 目录路径\n\n2. rename_file(directory_path, old_name, new_name)\n   - 功能: 修改某个目录下某个文件的名字\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - old_name (字符串) - 原文件名\n     - new_name (字符串) - 新文件名\n\n3. delete_file(directory_path, file_name)\n   - 功能: 删除某个目录下的某个文件\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 要删除的文件名\n\n4. create_file(directory_path, file_name, content)\n   - 功能: 在某个目录下新建一个文件，并且写入内容\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 文件名\n     - content (字符串) - 文件内容\n\n5. read_file(directory_path, file_name)\n   - 功能: 读取某个目录下的某个文件的内容\n   - 参数:\n     - directory_path (字符串) - 目录路径\n     - file_name (字符串) - 文件名\n\n6. curl_fetch(url, method, headers, data, timeout)\n   - 功能: 通过curl访问网页并返回网页内容\n   - 参数:\n     - url (字符串) - 要访问的网页URL\n     - method (字符串) - HTTP方法，默认GET\n     - headers (字典) - HTTP请求头\n     - data (字符串) - POST请求的数据\n     - timeout (整数) - 超时时间（秒），默认30\n\n7. search_chat_history(user_query)\n   - 功能: 读取并检索本地聊天历史，结合用户问题回答\n   - 参数: user_query (字符串) - 用户的查询内容\n\n当你需要使用工具时，请在回复中包含以下格式的工具调用指令:\n\n[TOOL_CALL]\n{\n  \"name\": \"函数名\",\n  \"arguments\": {\n    \"参数名\": \"参数值\"\n  }\n}\n[/TOOL_CALL]\n\n请注意:\n- 请根据用户需求选择合适的工具\n- 如果需要多个工具调用，可以依次调用\n- 在执行文件操作前，请确保路径和文件名正确\n- 请友好地回复用户，解释你正在做什么\n- 当用户输入以 /search 开头，或表达“查找聊天记录”“查历史”时，请调用 search_chat_history 工具\n"
+  },
+  {
+    "role": "assistant",
+    "content": "[聊天历史总结]\n"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n太棒了！张家豪，听到你对软件工程专业这么有热情真的很棒！🎉 软件工程可是计算机领域里非常硬核又充满创造力的专业呢～\n\n作为东软学院的学生，你肯定接触过很多有趣的课程：\n- **编程语言**（Java/C++/Python等）\n- **数据结构与算法**\n- **数据库设计**\n- **前端开发/后端开发**\n- 还有各种项目实战练习\n\n如果你在学习过程中需要：\n📂 整理代码文件、管理作业资料\n💻 访问学校实验平台或在线资源库\n🌐 查找技术文档、开源项目、行业资料\n📝 处理课程文档或准备毕业设计\n\n随时告诉我，我都可以帮你搞定！你最近有没有特别想深入学习的方向？或者需要哪些具体的帮助呢？😊"
+  },
+  {
+    "role": "user",
+    "content": "我的老师是谢心"
+  },
+  {
+    "role": "assistant",
+    "content": "\n\n太棒了！谢心老师听起来很专业呢～如果和老师相关的任务需要协助（比如整理作业、查询课程资料或规划技术项目），随时告诉我哦！  \n\n作为东软学院软件工程系的同学，你最近有没有：  \n- 需要提交代码/文档？  \n- 想访问学校的实验平台？  \n- 或者对某个技术方向有疑问？  \n\n随时说，我帮你搞定！ 😊"
+  },
+  {
+    "role": "user",
+    "content": "我是谁"
+  }
+]
