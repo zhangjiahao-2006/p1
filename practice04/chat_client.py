@@ -240,7 +240,7 @@ def extract_key_information(chat_history, base_url, model, api_key, temperature,
 
 def record_key_information(info):
     """记录关键信息到D:/chat-log/log.txt"""
-    log_dir = "D:\chat-log"
+    log_dir = r"D:\chat-log"
     log_file = os.path.join(log_dir, "log.txt")
     
     # 确保目录存在
@@ -257,7 +257,7 @@ def record_key_information(info):
 
 def search_chat_history(query):
     """查找聊天历史"""
-    log_dir = "D:\chat-log"
+    log_dir = r"D:\chat-log"
     log_file = os.path.join(log_dir, "log.txt")
     
     if not os.path.exists(log_file):
@@ -458,6 +458,10 @@ def execute_tool_call(tool_call):
 
 def call_llm(messages, base_url, model, api_key, temperature, max_tokens):
     """调用LLM API"""
+    print(f"\n[调试信息] 调用LLM API")
+    print(f"[调试信息] 基础URL: {base_url}")
+    print(f"[调试信息] 模型: {model}")
+    
     parsed_url = urlparse(base_url)
     host = parsed_url.netloc
     path = parsed_url.path or '/'
@@ -476,16 +480,29 @@ def call_llm(messages, base_url, model, api_key, temperature, max_tokens):
         'Authorization': f'Bearer {api_key}'
     }
 
+    print(f"[调试信息] 请求路径: {path}/chat/completions")
+    
     if is_https:
         conn = http.client.HTTPSConnection(host)
     else:
         conn = http.client.HTTPConnection(host)
 
     try:
+        print("[调试信息] 发送请求...")
         conn.request('POST', f"{path}/chat/completions", json.dumps(data), headers)
+        print("[调试信息] 请求已发送，等待响应...")
         response = conn.getresponse()
+        print(f"[调试信息] 响应状态码: {response.status}")
+
+        status_code = response.status
+        if status_code != 200:
+            error_body = response.read().decode('utf-8')
+            print(f"\nAPI错误: HTTP {status_code}")
+            print(f"错误信息: {error_body}")
+            return ""
 
         full_response = ""
+        print("[调试信息] 开始接收响应...")
         for line in response:
             line = line.decode('utf-8')
             if line.startswith('data: '):
@@ -498,14 +515,23 @@ def call_llm(messages, base_url, model, api_key, temperature, max_tokens):
                         delta = chunk['choices'][0].get('delta', {})
                         if 'content' in delta:
                             content = delta['content']
-                            print(content, end='', flush=True)
+                            # 处理Unicode编码错误，替换无法显示的字符
+                            try:
+                                print(content, end='', flush=True)
+                            except UnicodeEncodeError:
+                                # 替换无法显示的字符
+                                content = content.encode('ascii', 'replace').decode('ascii')
+                                print(content, end='', flush=True)
                             full_response += content
                 except json.JSONDecodeError:
                     pass
         print()
+        print(f"[调试信息] 响应完成，总长度: {len(full_response)}")
         return full_response
     except Exception as e:
-        print(f"Error connecting to LLM: {e}")
+        print(f"\n连接LLM错误: {e}")
+        import traceback
+        traceback.print_exc()
         return ""
     finally:
         conn.close()
@@ -580,6 +606,69 @@ def main():
     ]
     chat_count = 0
 
+    # 添加测试模式，自动发送一条测试消息
+    test_message = "你好"
+    print(f"\n[测试模式] 自动发送消息: {test_message}")
+    chat_history.append({"role": "user", "content": test_message})
+    chat_count += 1
+
+    # 检查是否需要压缩聊天历史
+    non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    chat_length = get_chat_history_length(chat_history)
+    
+    if len(non_system_messages) > 10 or chat_length > 3000:  # 超过5轮对话（每轮包含用户和AI消息）或长度超过3k
+        chat_history = summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens)
+
+    # 每五次聊天提取一次关键信息
+    if chat_count % 5 == 0:
+        key_info = extract_key_information(chat_history, base_url, model, api_key, temperature, max_tokens)
+        if key_info:
+            record_result = record_key_information(key_info)
+            print(f"\n{record_result}")
+
+    max_iterations = 10
+    iteration = 0
+
+    while iteration < max_iterations:
+        iteration += 1
+        print("\nAI: ", end='', flush=True)
+        start_time = time.time()
+
+        response_text = call_llm(
+            chat_history,
+            base_url,
+            model,
+            api_key,
+            temperature,
+            max_tokens
+        )
+
+        end_time = time.time()
+
+        if not response_text:
+            print("\n错误: 未能获取AI响应，请检查配置和网络连接")
+            break
+
+        chat_history.append({"role": "assistant", "content": response_text})
+
+        tool_calls = parse_tool_calls(response_text)
+
+        if tool_calls:
+            for tool_call in tool_calls:
+                tool_name = tool_call.get('name')
+                arguments = tool_call.get('arguments', {})
+
+                if tool_name:
+                    print(f"[正在执行工具: {tool_name}]")
+                    tool_result = execute_tool(tool_name, arguments)
+                    print(f"[工具执行结果]")
+                    print(tool_result)
+
+                    # 将工具执行结果添加到聊天历史
+                    chat_history.append({"role": "user", "content": f"[工具执行结果]\n{tool_result}"})
+        else:
+            break
+
     try:
         while True:
             user_input = input("\n你: ")
@@ -625,6 +714,7 @@ def main():
                 end_time = time.time()
 
                 if not response_text:
+                    print("\n错误: 未能获取AI响应，请检查配置和网络连接")
                     break
 
                 chat_history.append({"role": "assistant", "content": response_text})
