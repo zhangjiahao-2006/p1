@@ -172,6 +172,44 @@
 - 从.env文件读取配置变量
 - 保持了原有的聊天历史压缩和关键信息提取功能
 
+### practice05/chat_client.py
+
+**功能用途：**
+- 基于practice04的聊天界面
+- 实现技能（Skill）调用功能
+- 自动读取`.agentslskills`目录下的技能列表
+- 当LLM判断需要使用某个技能时，自动加载该技能的SKILL.md文件内容
+- 支持撰写学生请假条技能，包含半天假、一天假、多天假等场景
+
+**核心功能模块：**
+
+1. **技能列表读取**
+   - `list_available_skills()` - 读取`.agentslskills`目录下所有技能
+   - 解析每个技能的SKILL.md文件中的YAML front matter
+   - 提取name和description字段
+
+2. **技能正文加载**
+   - `load_skill_content(skill_name)` - 加载指定技能的SKILL.md文件正文内容
+   - 提取YAML front matter之后的内容
+
+3. **技能调用系统**
+   - `get_system_prompt()` - 获取系统提示词，包含技能列表
+   - `parse_skill_calls()` - 解析LLM响应中的技能调用指令
+   - 使用标记 `[SKILL_CALL]` 和 `[/SKILL_CALL]` 包裹技能调用指令
+   - 支持技能调用后自动加载技能内容
+
+4. **学生请假条技能**
+   - 技能目录：`.agentslskills/student_leave/`
+   - 支持场景：
+     - 示例1：半天假（身体不适）
+     - 示例2：一天假（真实生病）
+     - 示例3：多天假（家庭事务）
+
+**技术实现：**
+- 使用`yaml`库解析YAML front matter
+- 技能调用通过JSON格式传递技能名称
+- 保持了原有的工具调用、聊天历史压缩和关键信息提取功能
+
 ## 教学目标
 
 1. **基础Python编程**
@@ -265,6 +303,22 @@ py practice04\chat_client.py
 # 或使用虚拟环境Python
 venv\Scripts\python.exe practice04\chat_client.py
 ```
+
+### 运行练习5：技能调用系统
+
+```bash
+# 使用系统Python
+py practice05\chat_client.py
+
+# 或使用虚拟环境Python
+venv\Scripts\python.exe practice05\chat_client.py
+```
+
+运行后将显示测试场景选择菜单：
+1. 示例1：半天假（身体不适）- 我肚子不舒服，想请假半天
+2. 示例2：一天假（真实生病）- 我昨晚吃坏东西了，发烧了，想请假一天
+3. 示例3：多天假（家庭事务）- 我外公来了，需要请假三天
+4. 手动输入模式
 
 ## 预期输出
 

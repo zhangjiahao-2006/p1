@@ -1,0 +1,376 @@
+<!--
+ * Copyright (c) 2015 Mountainstorm
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * Original from https://github.com/mountainstorm/jquery.graphviz.svg/blob/master/demo.html
+ -->
+<html>
+	<head>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css">
+		<!-- <link rel="stylesheet" href="css/graphviz.svg.css"> -->
+	</head>
+
+	<style>
+        #instructions {
+            color: #000000;
+            position: absolute;
+            z-index: 100;
+            bottom: 0px;
+            left: 0px;
+        }
+    </style>
+	<body>
+		<h4 id="instructions">Click node to highlight; Shift-scroll to zoom; Esc to unhighlight</h4>
+		<div id="graph" style="width: 100%; height: 100%; overflow: scroll;"></div>
+
+		<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+		<script type="text/javascript" src="https://cdn.rawgit.com/jquery/jquery-mousewheel/master/jquery.mousewheel.min.js"></script>
+		<script type="text/javascript" src="https://cdn.rawgit.com/jquery/jquery-color/master/jquery.color.js"></script>
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js"></script>
+		<script type="text/javascript">!function(t){"use strict";String.prototype.startsWith=function(t){return 0==this.indexOf(t)},String.prototype.endsWith=function(t){return-1!==this.indexOf(t,this.length-t.length)};var e=function(t,e){this.type=null,this.options=null,this.enabled=null,this.$element=null,this.init("graphviz.svg",t,e)};e.VERSION="1.0.1",e.GVPT_2_PX=32.5,e.DEFAULTS={url:null,svg:null,shrink:"0.125pt",tooltips:{init:function(e){var i=t(this);i.tooltip({container:e,placement:"auto left",animation:!1,viewport:null}).on("hide.bs.tooltip",function(){if(i.attr("data-tooltip-keepvisible"))return!1})},show:function(){var e=t(this);e.attr("data-tooltip-keepvisible",!0),e.tooltip("show")},hide:function(){var e=t(this);e.removeAttr("data-tooltip-keepvisible"),e.tooltip("hide")},update:function(){var e=t(this);e.attr("data-tooltip-keepvisible")&&e.tooltip("show")}},zoom:!0,highlight:{selected:function(t,e){return t},unselected:function(t,e){return jQuery.Color(t).transition(e,.9)}},ready:null},e.prototype.init=function(e,i,n){if(this.enabled=!0,this.type=e,this.$element=t(i),this.options=this.getOptions(n),n.url){var o=this;t.get(n.url,null,function(e){var i=t("svg",e);o.$element.html(document.adoptNode(i[0])),o.setup()},"xml")}else n.svg&&this.$element.html(n.svg),this.setup()},e.prototype.getDefaults=function(){return e.DEFAULTS},e.prototype.getOptions=function(e){return(e=t.extend({},this.getDefaults(),this.$element.data(),e)).shrink&&("object"!=typeof e.shrink&&(e.shrink={x:e.shrink,y:e.shrink}),e.shrink.x=this.convertToPx(e.shrink.x),e.shrink.y=this.convertToPx(e.shrink.y)),e},e.prototype.setup=function(){var e=this.options,i=t(this.$element.children("svg")),n=i.children("g:first");this.$svg=i,this.$graph=n,this.$background=n.children("polygon:first"),this.$nodes=n.children(".node"),this.$edges=n.children(".edge"),this._nodesByName={},this._edgesByName={},this.$element.addClass("graphviz-svg"),this.$background.length&&this.$element.css("background",this.$background.attr("fill"));var o=this;this.$nodes.each(function(){o.setupNodesEdges(t(this),!0)}),this.$edges.each(function(){o.setupNodesEdges(t(this),!1)});var r=this.$graph.children("title");this.$graph.attr("data-name",r.text()),r.remove(),e.zoom&&this.setupZoom(),e.ready&&e.ready.call(this)},e.prototype.setupNodesEdges=function(e,i){var n=this,o=this.options;e.find("polygon, ellipse, path").each(function(){var e=t(this);e.data("graphviz.svg.color",{fill:e.attr("fill"),stroke:e.attr("stroke")}),i&&o.shrink&&n.scaleNode(e)});var r,s,h=e.children("title");if(h[0]){var a=h.text().replace(/:[snew][ew]?/g,"");e.attr("data-name",a),h.remove(),i?this._nodesByName[a]=e[0]:this._edgesByName[a]=e[0];for(var l=e[0].previousSibling;l&&8!=l.nodeType;)l=l.previousSibling;if(null!=l&&8==l.nodeType){var p=(r=l.nodeValue.trim(),(s=document.createElement("div")).innerHTML=r,s.childNodes[0].nodeValue);p!=a&&e.attr("data-comment",p)}}e.children("a").filter(function(){return t(this).attr("xlink:title")}).each(function(){var e=t(this);e.attr("title",e.attr("xlink:title")),e.removeAttr("xlink:title"),o.tooltips&&o.tooltips.init.call(this,n.$element)})},e.prototype.setupZoom=function(){var t=this,e=this.$element,i=this.$svg;this.zoom={width:i.attr("width"),height:i.attr("height"),percentage:null},this.scaleView(100),e.mousewheel(function(n){if(n.shiftKey){var o=t.zoom.percentage;(o-=n.deltaY*n.deltaFactor)<100&&(o=100);var r=n.pageX-i.offset().left,s=n.pageY-i.offset().top,h=r/i.width(),a=s/i.height(),l=n.pageX-e.offset().left,p=n.pageY-e.offset().top;return t.scaleView(o),e.scrollLeft(h*i.width()+.5-l),e.scrollTop(a*i.height()+.5-p),!1}})},e.prototype.scaleView=function(t){var e=this,i=this.$svg;i.attr("width",t+"%"),i.attr("height",t+"%"),this.zoom.percentage=t,this.$nodes.add(this.$edges).children("a[title]").each(function(){e.options.tooltips.update.call(this)})},e.prototype.scaleNode=function(t){var e=this.options.shrink.x,i=this.options.shrink.y,n=t.prop("tagName");if("ellipse"==n)t.attr("rx",parseFloat(t.attr("rx"))-e),t.attr("ry",parseFloat(t.attr("ry"))-i);else if("polygon"==n){var o=t[0].getBBox(),r=o.x+o.width/2,s=o.y+o.height/2,h=t.attr("points").split(" "),a="";for(var l in h){var p=h[l].split(","),d=parseFloat(p[0]),u=parseFloat(p[1]);a+=(r-d)/(o.width/2)*e+d+","+((s-u)/(o.height/2)*i+u)+" "}t.attr("points",a)}},e.prototype.convertToPx=function(t){var i=t;if("string"==typeof t){var n=t.length,o=1;t.endsWith("px")?n-=2:t.endsWith("pt")&&(n-=2,o=e.GVPT_2_PX),i=parseFloat(t.substring(0,n))*o}return i},e.prototype.findEdge=function(t,e,i){var n=[];for(var o in this._edgesByName){var r=e(t,o);r&&(i&&i.push(this._edgesByName[o]),n.push(r))}return n},e.prototype.findLinked=function(e,i,n,o){var r=t(e),s=null;i&&(s=o);var h=this.findEdge(r.attr("data-name"),n,s);for(var a in h){var l=this._nodesByName[h[a]];o.is(l)||(o.push(l),this.findLinked(l,i,n,o))}},e.prototype.colorElement=function(e,i){var n=this.$element.css("background");e.find("polygon, ellipse, path").each(function(){var e=t(this),o=e.data("graphviz.svg.color");o.fill&&"path"!=e.prop("tagName")&&e.attr("fill",i(o.fill,n)),o.stroke&&e.attr("stroke",i(o.stroke,n))})},e.prototype.restoreElement=function(e){e.find("polygon, ellipse, path").each(function(){var e=t(this),i=e.data("graphviz.svg.color");i.fill&&e.attr("fill",i.fill),i.stroke&&e.attr("stroke",i.stroke)})},e.prototype.nodes=function(){return this.$nodes},e.prototype.edges=function(){return this.$edges},e.prototype.nodesByName=function(){return this._nodesByName},e.prototype.edgesByName=function(){return this._edgesByName},e.prototype.linkedTo=function(e,i){var n=t();return this.findLinked(e,i,function(t,e){var i=null,n="->"+t;return e.endsWith(n)&&(i=e.substring(0,e.length-n.length)),i},n),n},e.prototype.linkedFrom=function(e,i){var n=t();return this.findLinked(e,i,function(t,e){var i=null,n=t+"->";return e.startsWith(n)&&(i=e.substring(n.length)),i},n),n},e.prototype.linked=function(e,i){var n=t();return this.findLinked(e,i,function(t,e){return"^"+name+"--(.*)$"},n),this.findLinked(e,i,function(t,e){return"^(.*)--"+name+"$"},n),n},e.prototype.tooltip=function(e,i){var n=this.options;e.each(function(){t(this).children("a[title]").each(function(){i?n.tooltips.show.call(this):n.tooltips.hide.call(this)})})},e.prototype.bringToFront=function(t){t.detach().appendTo(this.$graph)},e.prototype.sendToBack=function(t){this.$background.length?$element.insertAfter(this.$background):t.detach().prependTo(this.$graph)},e.prototype.highlight=function(e,i){var n=this,o=this.options,r=this.$nodes.add(this.$edges);e&&e.length>0?(r.not(e).each(function(){n.colorElement(t(this),o.highlight.unselected),n.tooltip(t(this))}),e.each(function(){n.colorElement(t(this),o.highlight.selected)}),i&&this.tooltip(e,!0)):(r.each(function(){n.restoreElement(t(this))}),this.tooltip(r))},e.prototype.destroy=function(){var t=this;this.hide(function(){t.$element.off("."+t.type).removeData(t.type)})};var i=t.fn.graphviz;t.fn.graphviz=function(i){return this.each(function(){var n=t(this),o=n.data("graphviz.svg"),r="object"==typeof i&&i;!o&&/destroy/.test(i)||(o||n.data("graphviz.svg",o=new e(this,r)),"string"==typeof i&&o[i]())})},t.fn.graphviz.Constructor=e,t.fn.graphviz.noConflict=function(){return t.fn.graphviz=i,this}}(jQuery);</script>
+		<script type="text/javascript">
+ 			$(document).ready(function(){
+                $("#graph").graphviz({
+                    svg: `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.5 (20260411.2331)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="994pt" height="305pt"
+ viewBox="0.00 0.00 994.00 305.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 300.5)">
+<title>G</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-300.5 990,-300.5 990,4 -4,4"/>
+<g id="clust1" class="cluster">
+<title>cluster_G</title>
+<path fill="#808080" fill-opacity="0.094118" stroke="black" d="M20,-8C20,-8 966,-8 966,-8 972,-8 978,-14 978,-20 978,-20 978,-276.5 978,-276.5 978,-282.5 972,-288.5 966,-288.5 966,-288.5 20,-288.5 20,-288.5 14,-288.5 8,-282.5 8,-276.5 8,-276.5 8,-20 8,-20 8,-14 14,-8 20,-8"/>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_chat_client</title>
+<path fill="#808080" fill-opacity="0.094118" stroke="black" d="M80,-16C80,-16 958,-16 958,-16 964,-16 970,-22 970,-28 970,-28 970,-224.5 970,-224.5 970,-230.5 964,-236.5 958,-236.5 958,-236.5 80,-236.5 80,-236.5 74,-236.5 68,-230.5 68,-224.5 68,-224.5 68,-28 68,-28 68,-22 74,-16 80,-16"/>
+<text xml:space="preserve" text-anchor="middle" x="519" y="-219.2" font-family="Times New Roman,serif" font-size="14.00">chat_client</text>
+</g>
+<!-- chat_client -->
+<g id="node1" class="node">
+<title>chat_client</title>
+<g id="a_node1"><a xlink:title="chat_client&#10;F:modelsaizuoyep1practice02chat_client.py">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="476" cy="-262.5" rx="51.35" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="476" y="-257.45" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">chat_client</text>
+</a>
+</g>
+</g>
+<!-- chat_client__TOOLS -->
+<g id="node2" class="node">
+<title>chat_client__TOOLS</title>
+<g id="a_node2"><a xlink:title="chat_client.TOOLS&#10;F:modelsaizuoyep1practice02chat_client.py:216&#10;name in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="447" cy="-42" rx="40.6" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="447" y="-36.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">TOOLS</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__TOOLS -->
+<g id="edge1" class="edge">
+<title>chat_client&#45;&gt;chat_client__TOOLS</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M424.51,-260.49C310.03,-257.98 43.37,-250.64 30,-236.5 -21.62,-181.91 55.04,-125.82 124,-96 213.92,-57.12 329.21,-46.57 394.93,-43.82"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="394.83,-47.33 404.7,-43.47 394.58,-40.34 394.83,-47.33"/>
+</g>
+<!-- chat_client__call_llm -->
+<g id="node3" class="node">
+<title>chat_client__call_llm</title>
+<g id="a_node3"><a xlink:title="chat_client.call_llm&#10;F:modelsaizuoyep1practice02chat_client.py:322&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="175" cy="-114" rx="41.63" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="175" y="-108.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">call_llm</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__call_llm -->
+<g id="edge2" class="edge">
+<title>chat_client&#45;&gt;chat_client__call_llm</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M424.52,-260.36C313.55,-257.64 60.74,-250 48,-236.5 27.11,-214.35 31.12,-193.34 48,-168 50.61,-164.09 98.05,-144.94 134.19,-130.77"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="135.06,-134.19 143.1,-127.3 132.51,-127.67 135.06,-134.19"/>
+</g>
+<!-- chat_client__count_tokens -->
+<g id="node4" class="node">
+<title>chat_client__count_tokens</title>
+<g id="a_node4"><a xlink:title="chat_client.count_tokens&#10;F:modelsaizuoyep1practice02chat_client.py:26&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="408" cy="-114" rx="60.05" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="408" y="-108.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">count_tokens</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__count_tokens -->
+<g id="edge3" class="edge">
+<title>chat_client&#45;&gt;chat_client__count_tokens</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M424.27,-262.2C319.68,-263.06 90.98,-261.99 67,-236.5 46.14,-214.33 47.19,-191.12 67,-168 84.47,-147.61 244.7,-129.78 339.17,-120.93"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="339.49,-124.42 349.13,-120.01 338.85,-117.45 339.49,-124.42"/>
+</g>
+<!-- chat_client__create_file -->
+<g id="node5" class="node">
+<title>chat_client__create_file</title>
+<g id="a_node5"><a xlink:title="chat_client.create_file&#10;F:modelsaizuoyep1practice02chat_client.py:119&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="360" cy="-186" rx="49.82" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="360" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">create_file</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__create_file -->
+<g id="edge4" class="edge">
+<title>chat_client&#45;&gt;chat_client__create_file</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M437.3,-250.2C427.97,-246.35 418.35,-241.69 410,-236.5 398.64,-229.44 387.15,-220.34 377.9,-211.88"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="380.51,-209.53 370.89,-205.09 375.64,-214.56 380.51,-209.53"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__create_file -->
+<g id="edge5" class="edge">
+<title>chat_client&#45;&gt;chat_client__create_file</title>
+<path fill="none" stroke="#000000" d="M447.86,-247.13C441.19,-243.96 434.24,-240.38 428,-236.5 415.58,-228.79 403,-218.63 391.96,-209.52"/>
+<polygon fill="#000000" stroke="#000000" points="394.2,-206.83 384.26,-203.16 389.74,-212.23 394.2,-206.83"/>
+</g>
+<!-- chat_client__curl_fetch -->
+<g id="node6" class="node">
+<title>chat_client__curl_fetch</title>
+<g id="a_node6"><a xlink:title="chat_client.curl_fetch&#10;F:modelsaizuoyep1practice02chat_client.py:159&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="476" cy="-186" rx="48.28" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="476" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">curl_fetch</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__curl_fetch -->
+<g id="edge6" class="edge">
+<title>chat_client&#45;&gt;chat_client__curl_fetch</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M470.2,-244.22C469.3,-235.66 469.04,-225.11 469.42,-215.41"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="472.89,-215.92 470.1,-205.7 465.91,-215.43 472.89,-215.92"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__curl_fetch -->
+<g id="edge7" class="edge">
+<title>chat_client&#45;&gt;chat_client__curl_fetch</title>
+<path fill="none" stroke="#000000" d="M481.8,-244.22C482.7,-235.66 482.96,-225.11 482.58,-215.41"/>
+<polygon fill="#000000" stroke="#000000" points="486.09,-215.43 481.9,-205.7 479.11,-215.92 486.09,-215.43"/>
+</g>
+<!-- chat_client__delete_file -->
+<g id="node7" class="node">
+<title>chat_client__delete_file</title>
+<g id="a_node7"><a xlink:title="chat_client.delete_file&#10;F:modelsaizuoyep1practice02chat_client.py:103&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="592" cy="-186" rx="49.82" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="592" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">delete_file</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__delete_file -->
+<g id="edge8" class="edge">
+<title>chat_client&#45;&gt;chat_client__delete_file</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M504.14,-247.13C510.81,-243.96 517.76,-240.38 524,-236.5 536.42,-228.79 549,-218.63 560.04,-209.52"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="562.26,-212.23 567.74,-203.16 557.8,-206.83 562.26,-212.23"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__delete_file -->
+<g id="edge9" class="edge">
+<title>chat_client&#45;&gt;chat_client__delete_file</title>
+<path fill="none" stroke="#000000" d="M514.7,-250.2C524.03,-246.35 533.65,-241.69 542,-236.5 553.36,-229.44 564.85,-220.34 574.1,-211.88"/>
+<polygon fill="#000000" stroke="#000000" points="576.36,-214.56 581.11,-205.09 571.49,-209.53 576.36,-214.56"/>
+</g>
+<!-- chat_client__execute_tool_call -->
+<g id="node8" class="node">
+<title>chat_client__execute_tool_call</title>
+<g id="a_node8"><a xlink:title="chat_client.execute_tool_call&#10;F:modelsaizuoyep1practice02chat_client.py:308&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="778" cy="-114" rx="75.92" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="778" y="-108.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">execute_tool_call</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__execute_tool_call -->
+<g id="edge10" class="edge">
+<title>chat_client&#45;&gt;chat_client__execute_tool_call</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M527.5,-262.15C630.98,-262.92 856.36,-261.65 880,-236.5 900.85,-214.32 895.8,-194.02 880,-168 870.31,-152.04 854.07,-140.66 837.37,-132.66"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="838.92,-129.51 828.35,-128.7 836.11,-135.92 838.92,-129.51"/>
+</g>
+<!-- chat_client__list_directory -->
+<g id="node9" class="node">
+<title>chat_client__list_directory</title>
+<g id="a_node9"><a xlink:title="chat_client.list_directory&#10;F:modelsaizuoyep1practice02chat_client.py:30&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="720" cy="-186" rx="60.05" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="720" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">list_directory</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__list_directory -->
+<g id="edge11" class="edge">
+<title>chat_client&#45;&gt;chat_client__list_directory</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M527.11,-260.08C560.77,-257.54 605.12,-251.32 642,-236.5 657.74,-230.17 673.27,-219.53 686.42,-209.74"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="688.48,-212.57 694.33,-203.74 684.25,-206.99 688.48,-212.57"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__list_directory -->
+<g id="edge12" class="edge">
+<title>chat_client&#45;&gt;chat_client__list_directory</title>
+<path fill="none" stroke="#000000" d="M527.53,-260.97C565.6,-259.18 617.71,-253.49 660,-236.5 674.75,-230.57 689.31,-220.86 700.56,-211.6"/>
+<polygon fill="#000000" stroke="#000000" points="702.83,-214.26 708.02,-205.02 698.21,-209.01 702.83,-214.26"/>
+</g>
+<!-- chat_client__load_env -->
+<g id="node10" class="node">
+<title>chat_client__load_env</title>
+<g id="a_node10"><a xlink:title="chat_client.load_env&#10;F:modelsaizuoyep1practice02chat_client.py:8&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="917" cy="-114" rx="44.7" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="917" y="-108.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">load_env</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__load_env -->
+<g id="edge13" class="edge">
+<title>chat_client&#45;&gt;chat_client__load_env</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M527.81,-261.85C633.24,-262.06 865.07,-259.83 892,-236.5 918.2,-213.8 921.34,-171.59 920.05,-143.4"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="923.57,-143.51 919.39,-133.78 916.59,-144 923.57,-143.51"/>
+</g>
+<!-- chat_client__main -->
+<g id="node11" class="node">
+<title>chat_client__main</title>
+<g id="a_node11"><a xlink:title="chat_client.main&#10;F:modelsaizuoyep1practice02chat_client.py:376&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="828" cy="-186" rx="29.86" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="828" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">main</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__main -->
+<g id="edge14" class="edge">
+<title>chat_client&#45;&gt;chat_client__main</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M527.58,-262.33C602.61,-262.54 737.23,-259.4 780,-236.5 790.71,-230.77 799.46,-220.7 806.68,-211.13"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="809.44,-213.28 812.5,-203.14 803.78,-209.16 809.44,-213.28"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__main -->
+<g id="edge15" class="edge">
+<title>chat_client&#45;&gt;chat_client__main</title>
+<path fill="none" stroke="#000000" d="M527.66,-262.27C606.77,-262.81 753.07,-260.56 798,-236.5 807.57,-231.38 815.57,-222.79 821.27,-214.2"/>
+<polygon fill="#000000" stroke="#000000" points="824.24,-216.06 826.11,-205.63 818.15,-212.62 824.24,-216.06"/>
+</g>
+<!-- chat_client__parse_tool_calls -->
+<g id="node12" class="node">
+<title>chat_client__parse_tool_calls</title>
+<g id="a_node12"><a xlink:title="chat_client.parse_tool_calls&#10;F:modelsaizuoyep1practice02chat_client.py:285&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="613" cy="-114" rx="70.8" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="613" y="-108.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">parse_tool_calls</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__parse_tool_calls -->
+<g id="edge16" class="edge">
+<title>chat_client&#45;&gt;chat_client__parse_tool_calls</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M527.77,-262.04C628.77,-262.54 844.28,-260.72 867,-236.5 887.83,-214.3 886.22,-191.61 867,-168 817.14,-106.76 770.29,-148.21 693,-132 687.8,-130.91 682.41,-129.78 677,-128.63"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="677.91,-125.25 667.4,-126.6 676.46,-132.1 677.91,-125.25"/>
+</g>
+<!-- chat_client__read_file -->
+<g id="node13" class="node">
+<title>chat_client__read_file</title>
+<g id="a_node13"><a xlink:title="chat_client.read_file&#10;F:modelsaizuoyep1practice02chat_client.py:137&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="120" cy="-186" rx="43.67" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="120" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">read_file</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__read_file -->
+<g id="edge17" class="edge">
+<title>chat_client&#45;&gt;chat_client__read_file</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M424.33,-261.37C347.75,-260.54 208.77,-256.32 164,-236.5 151.91,-231.15 140.82,-221.86 132.57,-212.76"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="135.32,-210.59 126.29,-205.06 129.89,-215.02 135.32,-210.59"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__read_file -->
+<g id="edge18" class="edge">
+<title>chat_client&#45;&gt;chat_client__read_file</title>
+<path fill="none" stroke="#000000" d="M424.55,-261.22C352.12,-260.08 224.53,-255.33 182,-236.5 168.87,-230.69 156.92,-220.23 146.9,-210.41"/>
+<polygon fill="#000000" stroke="#000000" points="149.57,-208.13 140.04,-203.51 144.61,-213.07 149.57,-208.13"/>
+</g>
+<!-- chat_client__rename_file -->
+<g id="node14" class="node">
+<title>chat_client__rename_file</title>
+<g id="a_node14"><a xlink:title="chat_client.rename_file&#10;F:modelsaizuoyep1practice02chat_client.py:86&#10;function in chat_client">
+<ellipse fill="#ffffff" fill-opacity="0.698039" stroke="black" cx="237" cy="-186" rx="55.45" ry="18"/>
+<text xml:space="preserve" text-anchor="middle" x="237" y="-180.95" font-family="Times New Roman,serif" font-size="14.00" fill="#000000">rename_file</text>
+</a>
+</g>
+</g>
+<!-- chat_client&#45;&gt;chat_client__rename_file -->
+<g id="edge19" class="edge">
+<title>chat_client&#45;&gt;chat_client__rename_file</title>
+<path fill="none" stroke="#838b8b" stroke-dasharray="5,2" d="M424.3,-261.37C386.14,-259.82 333.98,-254.25 292,-236.5 278.19,-230.66 264.77,-221.09 254.47,-211.9"/>
+<polygon fill="#838b8b" stroke="#838b8b" points="257.02,-209.5 247.38,-205.09 252.17,-214.54 257.02,-209.5"/>
+</g>
+<!-- chat_client&#45;&gt;chat_client__rename_file -->
+<g id="edge20" class="edge">
+<title>chat_client&#45;&gt;chat_client__rename_file</title>
+<path fill="none" stroke="#000000" d="M424.69,-260.56C390.96,-258.2 346.6,-251.98 310,-236.5 295.26,-230.27 280.96,-219.77 268.84,-210.05"/>
+<polygon fill="#000000" stroke="#000000" points="271.15,-207.42 261.19,-203.8 266.72,-212.84 271.15,-207.42"/>
+</g>
+<!-- chat_client__execute_tool_call&#45;&gt;chat_client__TOOLS -->
+<g id="edge21" class="edge">
+<title>chat_client__execute_tool_call&#45;&gt;chat_client__TOOLS</title>
+<path fill="none" stroke="#000000" d="M722.6,-101.28C658.63,-87.75 554.49,-65.73 494.21,-52.98"/>
+<polygon fill="#000000" stroke="#000000" points="495.11,-49.6 484.61,-50.95 493.66,-56.45 495.11,-49.6"/>
+</g>
+<!-- chat_client__main&#45;&gt;chat_client__call_llm -->
+<g id="edge22" class="edge">
+<title>chat_client__main&#45;&gt;chat_client__call_llm</title>
+<path fill="none" stroke="#000000" d="M805.76,-173.8C800.39,-171.52 794.59,-169.4 789,-168 594.37,-119.25 538.8,-150.34 339,-132 301.3,-128.54 258.78,-124.12 226.48,-120.65"/>
+<polygon fill="#000000" stroke="#000000" points="226.9,-117.17 216.58,-119.58 226.15,-124.13 226.9,-117.17"/>
+</g>
+<!-- chat_client__main&#45;&gt;chat_client__count_tokens -->
+<g id="edge23" class="edge">
+<title>chat_client__main&#45;&gt;chat_client__count_tokens</title>
+<path fill="none" stroke="#000000" d="M805.28,-173.86C800.04,-171.64 794.4,-169.52 789,-168 785.22,-166.94 581.2,-138.81 473.32,-123.97"/>
+<polygon fill="#000000" stroke="#000000" points="473.8,-120.51 463.42,-122.61 472.85,-127.44 473.8,-120.51"/>
+</g>
+<!-- chat_client__main&#45;&gt;chat_client__execute_tool_call -->
+<g id="edge24" class="edge">
+<title>chat_client__main&#45;&gt;chat_client__execute_tool_call</title>
+<path fill="none" stroke="#000000" d="M816.65,-169.12C810.75,-160.85 803.39,-150.54 796.67,-141.14"/>
+<polygon fill="#000000" stroke="#000000" points="799.54,-139.13 790.88,-133.03 793.84,-143.2 799.54,-139.13"/>
+</g>
+<!-- chat_client__main&#45;&gt;chat_client__load_env -->
+<g id="edge25" class="edge">
+<title>chat_client__main&#45;&gt;chat_client__load_env</title>
+<path fill="none" stroke="#000000" d="M845.58,-171.17C857.8,-161.56 874.35,-148.54 888.45,-137.46"/>
+<polygon fill="#000000" stroke="#000000" points="890.4,-140.38 896.09,-131.44 886.07,-134.87 890.4,-140.38"/>
+</g>
+<!-- chat_client__main&#45;&gt;chat_client__parse_tool_calls -->
+<g id="edge26" class="edge">
+<title>chat_client__main&#45;&gt;chat_client__parse_tool_calls</title>
+<path fill="none" stroke="#000000" d="M804.67,-174.3C799.55,-172.1 794.13,-169.88 789,-168 750.35,-153.81 705.94,-140.46 671.41,-130.71"/>
+<polygon fill="#000000" stroke="#000000" points="672.59,-127.41 662.02,-128.08 670.71,-134.15 672.59,-127.41"/>
+</g>
+</g>
+</svg>
+`,
+                    ready: function() {
+                        var gv = this
+                        gv.nodes().click(function () {
+                            var $set = $()
+                            $set.push(this)
+                            $set = $set.add(gv.linkedFrom(this, true))
+                            $set = $set.add(gv.linkedTo(this, true))
+                            gv.highlight($set, true)
+                            gv.bringToFront($set)
+                        })
+                        $(document).keydown(function (evt) {
+                            if (evt.keyCode == 27) {
+                                gv.highlight()
+                            }
+                        })
+                    }
+                });
+            });
+		</script>
+	</body>
+</html>

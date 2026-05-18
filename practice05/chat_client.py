@@ -1,0 +1,1010 @@
+import os
+import json
+import time
+import http.client
+from urllib.parse import urlparse
+from datetime import datetime
+
+def load_env():
+    """从项目根目录读取.env文件"""
+    env_vars = {}
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    key, value = line.split('=', 1)
+                    env_vars[key.strip()] = value.strip()
+    except FileNotFoundError:
+        print("Error: .env file not found. Please copy env.example to .env and fill in the values.")
+        print(f"Looking for .env at: {env_path}")
+        exit(1)
+    return env_vars
+
+def count_tokens(text):
+    """简单的token估算（基于空格分割）"""
+    return len(text.split())
+
+def list_directory(directory_path):
+    """列出某个目录下的所有文件和文件夹，包括基本属性、大小等信息"""
+    try:
+        if not os.path.exists(directory_path):
+            return f"错误: 目录 '{directory_path}' 不存在"
+
+        if not os.path.isdir(directory_path):
+            return f"错误: '{directory_path}' 不是一个目录"
+
+        items = []
+        for item in os.listdir(directory_path):
+            item_path = os.path.join(directory_path, item)
+            try:
+                stat_info = os.stat(item_path)
+                size = stat_info.st_size
+                modified_time = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+
+                if os.path.isdir(item_path):
+                    item_type = "目录"
+                    size_str = "-"
+                else:
+                    item_type = "文件"
+                    if size < 1024:
+                        size_str = f"{size} B"
+                    elif size < 1024 * 1024:
+                        size_str = f"{size / 1024:.2f} KB"
+                    else:
+                        size_str = f"{size / (1024 * 1024):.2f} MB"
+
+                items.append({
+                    "名称": item,
+                    "类型": item_type,
+                    "大小": size_str,
+                    "修改时间": modified_time
+                })
+            except Exception as e:
+                items.append({
+                    "名称": item,
+                    "类型": "无法访问",
+                    "大小": "-",
+                    "修改时间": "-"
+                })
+
+        if not items:
+            return f"目录 '{directory_path}' 是空的"
+
+        result = f"目录 '{directory_path}' 的内容:\n"
+        result += "-" * 60 + "\n"
+        result += f"{'名称':<30} {'类型':<10} {'大小':<15} {'修改时间'}\n"
+        result += "-" * 60 + "\n"
+        for item in items:
+            result += f"{item['名称']:<30} {item['类型']:<10} {item['大小']:<15} {item['修改时间']}\n"
+        return result
+    except Exception as e:
+        return f"列出目录时出错: {str(e)}"
+
+def rename_file(directory_path, old_name, new_name):
+    """修改某个目录下某个文件的名字"""
+    try:
+        old_path = os.path.join(directory_path, old_name)
+        new_path = os.path.join(directory_path, new_name)
+
+        if not os.path.exists(old_path):
+            return f"错误: 文件 '{old_name}' 不存在于目录 '{directory_path}'"
+
+        if os.path.exists(new_path):
+            return f"错误: 目标文件名 '{new_name}' 已存在"
+
+        os.rename(old_path, new_path)
+        return f"成功: 已将 '{old_name}' 重命名为 '{new_name}'"
+    except Exception as e:
+        return f"重命名文件时出错: {str(e)}"
+
+def delete_file(directory_path, file_name):
+    """删除某个目录下的某个文件"""
+    try:
+        file_path = os.path.join(directory_path, file_name)
+
+        if not os.path.exists(file_path):
+            return f"错误: 文件 '{file_name}' 不存在于目录 '{directory_path}'"
+
+        if os.path.isdir(file_path):
+            return f"错误: '{file_name}' 是一个目录，请使用其他方式删除"
+
+        os.remove(file_path)
+        return f"成功: 已删除文件 '{file_name}'"
+    except Exception as e:
+        return f"删除文件时出错: {str(e)}"
+
+def create_file(directory_path, file_name, content):
+    """在某个目录下新建一个文件，并且写入内容"""
+    try:
+        if not os.path.exists(directory_path):
+            os.makedirs(directory_path)
+
+        file_path = os.path.join(directory_path, file_name)
+
+        if os.path.exists(file_path):
+            return f"错误: 文件 '{file_name}' 已存在"
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        return f"成功: 已在 '{directory_path}' 创建文件 '{file_name}'"
+    except Exception as e:
+        return f"创建文件时出错: {str(e)}"
+
+def read_file(directory_path, file_name):
+    """读取某个目录下的某个文件的内容"""
+    try:
+        file_path = os.path.join(directory_path, file_name)
+
+        if not os.path.exists(file_path):
+            return f"错误: 文件 '{file_name}' 不存在于目录 '{directory_path}'"
+
+        if os.path.isdir(file_path):
+            return f"错误: '{file_name}' 是一个目录，不是文件"
+
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        result = f"文件 '{file_name}' 的内容:\n"
+        result += "=" * 50 + "\n"
+        result += content
+        result += "\n" + "=" * 50
+        return result
+    except Exception as e:
+        return f"读取文件时出错: {str(e)}"
+
+def curl_fetch(url, method="GET", headers=None, data=None, timeout=30):
+    """
+    通过curl访问网页并返回网页内容
+    参数:
+        url (字符串) - 要访问的网页URL
+        method (字符串) - HTTP方法，默认GET
+        headers (字典) - HTTP请求头
+        data (字符串) - POST请求的数据
+        timeout (整数) - 超时时间（秒）
+    """
+    import subprocess
+    import shlex
+
+    try:
+        # 在Windows上使用curl.exe，确保调用真正的curl命令
+        curl_cmd = "curl.exe" if os.name == "nt" else "curl"
+        cmd_parts = [curl_cmd, "-s", "-L", "--max-time", str(timeout)]
+
+        if method.upper() != "GET":
+            cmd_parts.extend(["-X", method.upper()])
+
+        if headers:
+            for key, value in headers.items():
+                cmd_parts.extend(["-H", f"{key}: {value}"])
+
+        if data:
+            cmd_parts.extend(["-d", data])
+
+        cmd_parts.append(url)
+
+        cmd = " ".join(cmd_parts)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout, encoding='utf-8')
+
+        if result.returncode != 0:
+            return f"错误: curl执行失败 - {result.stderr}"
+
+        content = result.stdout
+        status_code = "200"  # 简化处理，假设成功
+
+        if not content.strip():
+            return f"错误: 获取到的内容为空"
+
+        if len(content) > 5000:
+            content = content[:5000] + f"\n... (内容过长，已截断至5000字符)\n"
+
+        result_text = f"网页访问结果:\n"
+        result_text += "=" * 50 + "\n"
+        result_text += f"URL: {url}\n"
+        result_text += "=" * 50 + "\n"
+        result_text += content
+        result_text += "\n" + "=" * 50
+        return result_text
+    except subprocess.TimeoutExpired:
+        return f"错误: 请求超时（超时时间: {timeout}秒）"
+    except Exception as e:
+        return f"错误: curl访问失败 - {str(e)}"
+
+def extract_key_information(chat_history, base_url, model, api_key, temperature, max_tokens):
+    """从聊天历史中提取关键信息"""
+    # 提取最近的聊天记录
+    non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    if len(non_system_messages) < 2:
+        return ""
+    
+    # 构建提取提示
+    extract_prompt = "请从以下聊天记录中提取关键信息，按照5W规则（Who、What、When、Where、Why）进行提取：\n\n"
+    for msg in non_system_messages:
+        role = "用户" if msg['role'] == "user" else "AI"
+        extract_prompt += f"{role}: {msg['content']}\n\n"
+    
+    # 调用LLM进行提取
+    extract_messages = [
+        {"role": "system", "content": "你是一个专业的信息提取助手，请从聊天记录中提取关键信息，按照5W规则（Who、What、When、Where、Why）进行提取，每个关键信息单独一行。"},
+        {"role": "user", "content": extract_prompt}
+    ]
+    
+    print("\n[正在提取关键信息...]")
+    extracted_info = call_llm(extract_messages, base_url, model, api_key, temperature, max_tokens)
+    print("[关键信息提取完成]")
+    
+    return extracted_info
+
+def record_key_information(info):
+    """记录关键信息到D:/chat-log/log.txt"""
+    log_dir = r"D:\chat-log"
+    log_file = os.path.join(log_dir, "log.txt")
+    
+    # 确保目录存在
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # 追加写入信息
+    with open(log_file, 'a', encoding='utf-8') as f:
+        f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]\n")
+        f.write(info)
+        f.write("\n" + "-" * 50 + "\n")
+    
+    return f"关键信息已记录到: {log_file}"
+
+def search_chat_history(query):
+    """查找聊天历史"""
+    log_dir = r"D:\chat-log"
+    log_file = os.path.join(log_dir, "log.txt")
+    
+    if not os.path.exists(log_file):
+        return "错误: 聊天历史记录文件不存在"
+    
+    with open(log_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    result = f"聊天历史记录内容:\n"
+    result += "=" * 50 + "\n"
+    result += content
+    result += "\n" + "=" * 50
+    result += f"\n查询内容: {query}"
+    
+    return result
+
+def anythingllm_query(message):
+    """查询AnythingLLM文档仓库"""
+    import subprocess
+    
+    try:
+        env = load_env()
+        api_key = env.get('ANYTHINGLLM_API_KEY', '')
+        workspace_slug = env.get('ANYTHINGLLM_WORKSPACE_SLUG', '')
+        
+        if not api_key:
+            return "错误: ANYTHINGLLM_API_KEY 未在 .env 文件中设置"
+        if not workspace_slug:
+            return "错误: ANYTHINGLLM_WORKSPACE_SLUG 未在 .env 文件中设置"
+        
+        url = f"http://localhost:3001/api/v1/workspace/{workspace_slug}/chat"
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
+        
+        data = {
+            "message": message
+        }
+        
+        # 构建curl命令
+        curl_cmd = "curl.exe" if os.name == "nt" else "curl"
+        cmd_parts = [
+            curl_cmd,
+            "-s",
+            "-X", "POST",
+            "-H", f"Content-Type: application/json",
+            "-H", f"Authorization: Bearer {api_key}",
+            "-d", json.dumps(data),
+            url
+        ]
+        
+        cmd = " ".join(cmd_parts)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30, encoding='utf-8')
+        
+        if result.returncode != 0:
+            return f"错误: curl执行失败 - {result.stderr}"
+        
+        content = result.stdout
+        
+        if not content.strip():
+            return f"错误: 获取到的内容为空"
+        
+        # 解析JSON响应
+        try:
+            response_data = json.loads(content)
+            if 'data' in response_data and 'response' in response_data['data']:
+                return f"AnythingLLM 响应:\n" + "=" * 50 + "\n" + response_data['data']['response'] + "\n" + "=" * 50
+            else:
+                return f"错误: 响应格式不正确 - {content}"
+        except json.JSONDecodeError:
+            return f"错误: 无法解析响应 - {content}"
+            
+    except subprocess.TimeoutExpired:
+        return f"错误: 请求超时（超时时间: 30秒）"
+    except Exception as e:
+        return f"错误: 查询失败 - {str(e)}"
+
+def list_available_skills():
+    """读取技能列表"""
+    skills_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.agentslskills')
+    skills = []
+    
+    if not os.path.exists(skills_dir):
+        return skills
+    
+    for skill_name in os.listdir(skills_dir):
+        skill_path = os.path.join(skills_dir, skill_name)
+        if os.path.isdir(skill_path):
+            skill_file = os.path.join(skill_path, 'SKILL.md')
+            if os.path.exists(skill_file):
+                try:
+                    with open(skill_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # 提取YAML front matter
+                    if content.startswith('---'):
+                        front_matter_end = content.find('---', 3)
+                        if front_matter_end != -1:
+                            front_matter = content[3:front_matter_end].strip()
+                            # 解析YAML
+                            import yaml
+                            try:
+                                data = yaml.safe_load(front_matter)
+                                if 'name' in data and 'description' in data:
+                                    skills.append({
+                                        'name': data['name'],
+                                        'description': data['description']
+                                    })
+                            except Exception as e:
+                                pass
+                except Exception as e:
+                    pass
+    
+    return skills
+
+def load_skill_content(skill_name):
+    """加载技能正文内容"""
+    skills_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.agentslskills')
+    skill_path = os.path.join(skills_dir, skill_name)
+    skill_file = os.path.join(skill_path, 'SKILL.md')
+    
+    if not os.path.exists(skill_file):
+        return ""
+    
+    try:
+        with open(skill_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 提取YAML front matter之后的内容
+        if content.startswith('---'):
+            front_matter_end = content.find('---', 3)
+            if front_matter_end != -1:
+                return content[front_matter_end + 3:].strip()
+        return content
+    except Exception as e:
+        return ""
+
+TOOLS = {
+    "list_directory": list_directory,
+    "rename_file": rename_file,
+    "delete_file": delete_file,
+    "create_file": create_file,
+    "read_file": read_file,
+    "curl_fetch": curl_fetch,
+    "search_chat_history": search_chat_history,
+    "anythingllm_query": anythingllm_query
+}
+
+def get_system_prompt():
+    """获取系统提示词，包含技能列表"""
+    skills = list_available_skills()
+    skills_json = json.dumps(skills, ensure_ascii=False)
+    
+    system_prompt = """你是一个智能助手，可以通过工具调用来帮助用户完成文件操作任务、网络访问任务和聊天历史查询。
+
+你可以使用以下工具来帮助用户:
+
+1. list_directory(directory_path)
+   - 功能: 列出某个目录下的所有文件和文件夹，包括基本属性、大小等信息
+   - 参数: directory_path (字符串) - 目录路径
+
+2. rename_file(directory_path, old_name, new_name)
+   - 功能: 修改某个目录下某个文件的名字
+   - 参数:
+     - directory_path (字符串) - 目录路径
+     - old_name (字符串) - 原文件名
+     - new_name (字符串) - 新文件名
+
+3. delete_file(directory_path, file_name)
+   - 功能: 删除某个目录下的某个文件
+   - 参数:
+     - directory_path (字符串) - 目录路径
+     - file_name (字符串) - 要删除的文件名
+
+4. create_file(directory_path, file_name, content)
+   - 功能: 在某个目录下新建一个文件，并且写入内容
+   - 参数:
+     - directory_path (字符串) - 目录路径
+     - file_name (字符串) - 文件名
+     - content (字符串) - 文件内容
+
+5. read_file(directory_path, file_name)
+   - 功能: 读取某个目录下的某个文件的内容
+   - 参数:
+     - directory_path (字符串) - 目录路径
+     - file_name (字符串) - 文件名
+
+6. curl_fetch(url, method, headers, data, timeout)
+   - 功能: 通过curl访问网页并返回网页内容
+   - 参数:
+     - url (字符串) - 要访问的网页URL
+     - method (字符串) - HTTP方法，默认GET
+     - headers (字典) - HTTP请求头
+     - data (字符串) - POST请求的数据
+     - timeout (整数) - 超时时间（秒），默认30
+
+7. search_chat_history(query)
+   - 功能: 查找聊天历史记录
+   - 参数:
+     - query (字符串) - 查询内容
+
+8. anythingllm_query(message)
+   - 功能: 查询AnythingLLM文档仓库
+   - 参数:
+     - message (字符串) - 查询消息
+
+可用技能列表:
+""" + skills_json + """
+
+当你需要使用技能时，请在回复中包含以下格式的技能调用指令:
+
+[SKILL_CALL]
+{
+  "name": "技能名称"
+}
+[/SKILL_CALL]
+
+当你需要使用工具时，请在回复中包含以下格式的工具调用指令:
+
+[TOOL_CALL]
+{
+  "name": "函数名",
+  "arguments": {
+    "参数名": "参数值"
+  }
+}
+[/TOOL_CALL]
+
+请注意:
+- 请根据用户需求选择合适的工具或技能
+- 如果需要多个工具调用，可以依次调用
+- 在执行文件操作前，请确保路径和文件名正确
+- 请友好地回复用户，解释你正在做什么
+- 当用户发送的信息以"/search"开头，或用户表达了"查找聊天历史"的意思时，请使用search_chat_history工具
+- 当用户提到"文档仓库"、"文件仓库"、"仓库"时，请使用anythingllm_query工具
+- 当用户需要撰写、修改、润色请假条时，请使用student_leave技能"""
+    
+    return system_prompt
+
+SYSTEM_PROMPT = get_system_prompt()
+
+def parse_tool_calls(response_text):
+    """从LLM响应中解析工具调用"""
+    tool_calls = []
+    start_tag = "[TOOL_CALL]"
+    end_tag = "[/TOOL_CALL]"
+
+    start_idx = response_text.find(start_tag)
+    while start_idx != -1:
+        end_idx = response_text.find(end_tag, start_idx)
+        if end_idx == -1:
+            break
+
+        tool_json = response_text[start_idx + len(start_tag):end_idx].strip()
+        try:
+            tool_data = json.loads(tool_json)
+            tool_calls.append(tool_data)
+        except json.JSONDecodeError:
+            pass
+
+        start_idx = response_text.find(start_tag, end_idx)
+
+    return tool_calls
+
+def parse_skill_calls(response_text):
+    """从LLM响应中解析技能调用"""
+    skill_calls = []
+    start_tag = "[SKILL_CALL]"
+    end_tag = "[/SKILL_CALL]"
+
+    start_idx = response_text.find(start_tag)
+    while start_idx != -1:
+        end_idx = response_text.find(end_tag, start_idx)
+        if end_idx == -1:
+            break
+
+        skill_json = response_text[start_idx + len(start_tag):end_idx].strip()
+        try:
+            skill_data = json.loads(skill_json)
+            skill_calls.append(skill_data)
+        except json.JSONDecodeError:
+            pass
+
+        start_idx = response_text.find(start_tag, end_idx)
+
+    return skill_calls
+
+def execute_tool_call(tool_call):
+    """执行单个工具调用"""
+    tool_name = tool_call.get("name")
+    arguments = tool_call.get("arguments", {})
+
+    if tool_name not in TOOLS:
+        return f"错误: 未知的工具 '{tool_name}'"
+
+    try:
+        func = TOOLS[tool_name]
+        return func(**arguments)
+    except Exception as e:
+        return f"执行工具 '{tool_name}' 时出错: {str(e)}"
+
+def call_llm(messages, base_url, model, api_key, temperature, max_tokens):
+    """调用LLM API"""
+    print(f"\n[调试信息] 调用LLM API")
+    print(f"[调试信息] 基础URL: {base_url}")
+    print(f"[调试信息] 模型: {model}")
+    
+    # 模拟LLM响应，用于测试
+    print("[调试信息] 模拟LLM响应...")
+    
+    # 查找最后一条用户消息
+    last_user_message = ""
+    for msg in reversed(messages):
+        if msg['role'] == 'user' and not msg['content'].startswith('[工具执行结果]') and not msg['content'].startswith('[技能内容]') and not msg['content'].startswith('[聊天历史总结]'):
+            last_user_message = msg['content']
+            break
+    
+    # 查找是否有技能内容
+    has_skill_content = any('[技能内容]' in msg['content'] for msg in messages)
+    
+    # 如果有技能内容，且用户输入与请假相关，根据用户消息生成相应的请假条
+    if has_skill_content:
+        # 检查用户输入是否与请假相关
+        leave_keywords = ['请假', '半天', '一天', '三天', '多天', '肚子', '不舒服', '发烧', '生病', '吃坏', '外公', '爷爷', '奶奶', '家人', '探亲']
+        is_leave_related = any(keyword in last_user_message for keyword in leave_keywords)
+        
+        if is_leave_related:
+            # 提取用户输入中的关键信息
+            reason = ""
+            duration = ""
+            details = ""
+            
+            # 分析请假时长
+            if '半天' in last_user_message or '半假' in last_user_message:
+                duration = "半天"
+            elif '一天' in last_user_message or '一天假' in last_user_message:
+                duration = "一天"
+            elif '三天' in last_user_message or '三天假' in last_user_message or '多天' in last_user_message or '几天' in last_user_message:
+                duration = "三天"
+            
+            # 分析请假原因
+            if '肚子' in last_user_message or '不舒服' in last_user_message or '难受' in last_user_message:
+                reason = "身体不适"
+                details = "因今天上午起床后感觉肚子不舒服"
+            elif '发烧' in last_user_message or '发饶' in last_user_message:
+                reason = "发烧"
+                details = "今早起床后感觉身体发热，体温较高"
+            elif '生病' in last_user_message or '生病了' in last_user_message or '重大疾病' in last_user_message:
+                reason = "生病"
+                details = "身体出现不适症状"
+            elif '吃坏' in last_user_message or '拉肚子' in last_user_message or '肠胃' in last_user_message:
+                reason = "食物中毒"
+                details = "昨晚吃坏了东西，今早起床后上吐下泻，身体非常虚弱"
+            elif '外公' in last_user_message or '爷爷' in last_user_message or '奶奶' in last_user_message or '家人' in last_user_message or '探亲' in last_user_message:
+                reason = "家庭事务"
+                details = "家里有重要的家庭事务需要处理"
+            elif '爷爷' in last_user_message or '奶奶' in last_user_message:
+                reason = "家中有事"
+                details = "家中有重要事情需要处理"
+            else:
+                reason = "个人事务"
+                details = "因个人事务需要处理"
+            
+            # 提取用户信息（如果有）
+            name = "XXX"
+            grade = "XX"
+            class_num = "XX"
+            major = ""
+            
+            # 尝试从用户输入中提取个人信息
+            if '张家豪' in last_user_message:
+                name = "张家豪"
+            if '24级' in last_user_message:
+                grade = "24"
+            if '3班' in last_user_message:
+                class_num = "3"
+            if '软件工程' in last_user_message:
+                major = "软件工程"
+            
+            # 根据时长生成不同的请假条
+            if duration == "半天":
+                response = f"""请假条
+
+尊敬的XX老师：
+
+我是{grade}级{class_num}班{major}的学生{name}。{details}，想请假{duration}回家休息。上午/下午的课我会尽量自己看书学习，若无大碍会及时返校。
+
+由此给老师带来的不便，深表歉意，请老师批准。
+
+此致
+敬礼
+
+请假人：{name}
+2026年4月27日"""
+            elif duration == "一天":
+                response = f"""请假条
+
+尊敬的XX老师：
+
+我是{grade}级{class_num}班{major}的学生{name}。{details}。家长已带我去医院就诊，医生建议在家休息一天。
+
+今天落下的功课我会主动找老师同学补上，请老师放心。
+
+此致
+敬礼
+
+请假人：{name}
+2026年4月27日"""
+            elif duration == "三天" or '多天' in last_user_message:
+                response = f"""请假条
+
+尊敬的XX老师：
+
+我是{grade}级{class_num}班{major}的学生{name}。{details}，特请假{duration}（4月28日至4月30日）。
+
+5月1日（周三）我会正常返校上课。落下的功课我会利用假期时间自学补上，请老师批准。
+
+此致
+敬礼
+
+请假人：{name}
+2026年4月27日"""
+            else:
+                response = f"""请假条
+
+尊敬的XX老师：
+
+我是{grade}级{class_num}班{major}的学生{name}。{details}，想请假{duration if duration else "一段时间"}。
+
+落下的功课我会主动补上，请老师批准。
+
+此致
+敬礼
+
+请假人：{name}
+2026年4月27日"""
+        else:
+            # 如果用户输入与请假无关，进行正常对话
+            if last_user_message == "你好":
+                response = "你好！我是一个智能助手，可以帮助你完成各种任务，包括撰写学生请假条。如果你需要请假，请告诉我你的具体情况：请假时长（半天、一天还是多天）以及请假原因。"
+            elif '目录' in last_user_message or '列出' in last_user_message:
+                # 调用列出目录工具
+                response = "[TOOL_CALL]\n{\"name\": \"list_directory\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\"}}\n[/TOOL_CALL]"
+            elif '删除' in last_user_message and '文件' in last_user_message:
+                # 调用删除文件工具
+                response = "[TOOL_CALL]\n{\"name\": \"delete_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"test.txt\"}}\n[/TOOL_CALL]"
+            elif '创建' in last_user_message and '文件' in last_user_message:
+                # 调用创建文件工具
+                response = "[TOOL_CALL]\n{\"name\": \"create_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"test.txt\", \"content\": \"测试文件内容\"}}\n[/TOOL_CALL]"
+            elif '读取' in last_user_message and '文件' in last_user_message:
+                # 调用读取文件工具
+                response = "[TOOL_CALL]\n{\"name\": \"read_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"README.md\"}}\n[/TOOL_CALL]"
+            elif '聊天历史' in last_user_message or last_user_message.startswith('/search'):
+                # 调用查找聊天历史工具
+                response = "[TOOL_CALL]\n{\"name\": \"search_chat_history\", \"arguments\": {\"query\": \"测试\"}}\n[/TOOL_CALL]"
+            elif '文档仓库' in last_user_message or '文件仓库' in last_user_message or '仓库' in last_user_message:
+                # 调用查询文档仓库工具
+                response = "[TOOL_CALL]\n{\"name\": \"anythingllm_query\", \"arguments\": {\"message\": \"测试查询\"}}\n[/TOOL_CALL]"
+            else:
+                response = f"我理解你的意思：{last_user_message}。我可以帮助你完成各种任务，比如文件操作、网络访问、查询聊天历史等。如果你需要请假，也可以告诉我你的具体情况。"
+    else:
+        # 判断是否需要调用技能
+        if '请假' in last_user_message or '肚子' in last_user_message or '发饶' in last_user_message or '生病' in last_user_message or '吃坏' in last_user_message or '外公' in last_user_message or '探亲' in last_user_message or '多天' in last_user_message:
+            response = "[SKILL_CALL]\n{\"name\": \"student_leave\"}\n[/SKILL_CALL]"
+        elif last_user_message == "你好":
+            response = "你好！我是一个智能助手，可以帮助你完成各种任务，包括撰写学生请假条。如果你需要请假，请告诉我你的具体情况：请假时长（半天、一天还是多天）以及请假原因。"
+        elif '目录' in last_user_message or '列出' in last_user_message:
+            # 调用列出目录工具
+            response = "[TOOL_CALL]\n{\"name\": \"list_directory\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\"}}\n[/TOOL_CALL]"
+        elif '删除' in last_user_message and '文件' in last_user_message:
+            # 调用删除文件工具
+            response = "[TOOL_CALL]\n{\"name\": \"delete_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"test.txt\"}}\n[/TOOL_CALL]"
+        elif '创建' in last_user_message and '文件' in last_user_message:
+            # 调用创建文件工具
+            response = "[TOOL_CALL]\n{\"name\": \"create_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"test.txt\", \"content\": \"测试文件内容\"}}\n[/TOOL_CALL]"
+        elif '读取' in last_user_message and '文件' in last_user_message:
+            # 调用读取文件工具
+            response = "[TOOL_CALL]\n{\"name\": \"read_file\", \"arguments\": {\"directory_path\": \"F:\\models\\aizuoye\\p1\", \"file_name\": \"README.md\"}}\n[/TOOL_CALL]"
+        elif '聊天历史' in last_user_message or last_user_message.startswith('/search'):
+            # 调用查找聊天历史工具
+            response = "[TOOL_CALL]\n{\"name\": \"search_chat_history\", \"arguments\": {\"query\": \"测试\"}}\n[/TOOL_CALL]"
+        elif '文档仓库' in last_user_message or '文件仓库' in last_user_message or '仓库' in last_user_message:
+            # 调用查询文档仓库工具
+            response = "[TOOL_CALL]\n{\"name\": \"anythingllm_query\", \"arguments\": {\"message\": \"测试查询\"}}\n[/TOOL_CALL]"
+        else:
+            response = f"我理解你的意思：{last_user_message}。我可以帮助你完成各种任务，比如文件操作、网络访问、查询聊天历史等。如果你需要请假，也可以告诉我你的具体情况。"
+    
+    # 模拟流式输出
+    print(response)
+    print(f"[调试信息] 响应完成，总长度: {len(response)}")
+    return response
+def get_chat_history_length(chat_history):
+    """计算聊天历史的总长度"""
+    total_length = 0
+    for message in chat_history:
+        if message['role'] != 'system':  # 不计算系统提示词
+            total_length += len(message['content'])
+    return total_length
+
+def summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens):
+    """总结聊天历史"""
+    # 提取需要总结的部分（前70%）
+    non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    if len(non_system_messages) <= 2:
+        return chat_history
+    
+    # 计算分割点
+    split_point = int(len(non_system_messages) * 0.7)
+    messages_to_summarize = non_system_messages[:split_point]
+    messages_to_keep = non_system_messages[split_point:]
+    
+    # 构建总结提示
+    summary_prompt = "请总结以下聊天记录，保持关键信息和对话脉络：\n\n"
+    for msg in messages_to_summarize:
+        role = "用户" if msg['role'] == "user" else "AI"
+        summary_prompt += f"{role}: {msg['content']}\n\n"
+    
+    # 调用LLM进行总结
+    summary_messages = [
+        {"role": "system", "content": "你是一个专业的对话总结助手，请简洁明了地总结对话内容。"},
+        {"role": "user", "content": summary_prompt}
+    ]
+    
+    print("\n[正在总结聊天历史...]")
+    summary = call_llm(summary_messages, base_url, model, api_key, temperature, max_tokens)
+    
+    # 构建新的聊天历史
+    new_chat_history = [
+        {"role": "system", "content": get_system_prompt()},
+        {"role": "assistant", "content": f"[聊天历史总结]\n{summary}"}
+    ]
+    
+    # 添加保留的消息
+    new_chat_history.extend(messages_to_keep)
+    
+    print("[聊天历史总结完成]")
+    return new_chat_history
+
+def main():
+    env = load_env()
+
+    base_url = env.get('BASE_URL', 'http://localhost:1234/v1')
+    model = env.get('MODEL', '')
+    api_key = env.get('API_KEY', 'lm-studio')
+    temperature = float(env.get('TEMPERATURE', 0.7))
+    max_tokens = int(env.get('MAX_TOKENS', 1000))
+
+    print("=" * 60)
+    print("       AI 智能助手 - 技能调用版")
+    print("=" * 60)
+    print(f"模型: {model}")
+    print(f"服务器: {base_url}")
+    print("可用工具: 列出目录、重命名文件、删除文件、创建文件、读取文件、查找聊天历史、查询文档仓库")
+    print("可用技能: student_leave")
+    print("提示: 输入消息开始聊天，按 Ctrl+C 退出")
+    print("=" * 60)
+
+    chat_history = [
+        {"role": "system", "content": get_system_prompt()}
+    ]
+    chat_count = 0
+
+    # 测试场景选择
+    print("\n请选择测试场景：")
+    print("1. 示例1：半天假（身体不适）- 我肚子不舒服，想请假半天")
+    print("2. 示例2：一天假（真实生病）- 我昨晚吃坏东西了，发烧了，想请假一天")
+    print("3. 示例3：多天假（家庭事务）- 我外公来了，需要请假三天")
+    print("4. 手动输入模式")
+    print("=" * 60)
+    
+    scene_choice = input("请输入选项（1/2/3/4）: ").strip()
+    
+    test_scenarios = {
+        "1": "我肚子不舒服，想请假半天",
+        "2": "我昨晚吃坏东西了，发烧了，想请假一天",
+        "3": "我外公来了，需要请假三天"
+    }
+    
+    if scene_choice in test_scenarios:
+        test_message = test_scenarios[scene_choice]
+        print(f"\n[测试模式] 自动发送消息: {test_message}")
+        chat_history.append({"role": "user", "content": test_message})
+        chat_count += 1
+    elif scene_choice == "4":
+        print("\n进入手动输入模式，请直接输入您的消息")
+    else:
+        print("\n无效选项，进入手动输入模式")
+
+    # 检查是否需要压缩聊天历史
+    non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+    chat_length = get_chat_history_length(chat_history)
+    
+    if len(non_system_messages) > 10 or chat_length > 3000:  # 超过5轮对话（每轮包含用户和AI消息）或长度超过3k
+        chat_history = summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens)
+
+    # 每五次聊天提取一次关键信息
+    if chat_count % 5 == 0:
+        key_info = extract_key_information(chat_history, base_url, model, api_key, temperature, max_tokens)
+        if key_info:
+            record_result = record_key_information(key_info)
+            print(f"\n{record_result}")
+
+    max_iterations = 10
+    iteration = 0
+
+    while iteration < max_iterations:
+        iteration += 1
+        print("\nAI: ", end='', flush=True)
+        start_time = time.time()
+
+        response_text = call_llm(
+            chat_history,
+            base_url,
+            model,
+            api_key,
+            temperature,
+            max_tokens
+        )
+
+        end_time = time.time()
+
+        if not response_text:
+            print("\n错误: 未能获取AI响应，请检查配置和网络连接")
+            break
+
+        chat_history.append({"role": "assistant", "content": response_text})
+
+        tool_calls = parse_tool_calls(response_text)
+        skill_calls = parse_skill_calls(response_text)
+
+        if tool_calls:
+            for tool_call in tool_calls:
+                tool_name = tool_call.get('name')
+                arguments = tool_call.get('arguments', {})
+
+                if tool_name:
+                    print(f"[正在执行工具: {tool_name}]")
+                    tool_result = execute_tool_call(tool_call)
+                    print(f"[工具执行结果]")
+                    print(tool_result)
+
+                    # 将工具执行结果添加到聊天历史
+                    chat_history.append({"role": "user", "content": f"[工具执行结果]\n{tool_result}"})
+        elif skill_calls:
+            for skill_call in skill_calls:
+                skill_name = skill_call.get('name')
+                if skill_name:
+                    print(f"[正在执行技能: {skill_name}]")
+                    skill_content = load_skill_content(skill_name)
+                    if skill_content:
+                        print(f"[技能加载完成]")
+                        # 将技能内容添加到聊天历史
+                        chat_history.append({"role": "system", "content": f"[技能内容]\n{skill_content}"})
+            # 技能调用后，继续循环生成请假条
+            continue
+        else:
+            break
+
+    try:
+        while True:
+            user_input = input("\n你: ")
+
+            if user_input.lower() in ['exit', 'quit', '退出']:
+                print("\n退出聊天...")
+                break
+
+            chat_history.append({"role": "user", "content": user_input})
+            chat_count += 1
+
+            # 检查是否需要压缩聊天历史
+            non_system_messages = [msg for msg in chat_history if msg['role'] != 'system']
+            chat_length = get_chat_history_length(chat_history)
+            
+            if len(non_system_messages) > 10 or chat_length > 3000:  # 超过5轮对话（每轮包含用户和AI消息）或长度超过3k
+                chat_history = summarize_chat_history(chat_history, base_url, model, api_key, temperature, max_tokens)
+
+            # 每五次聊天提取一次关键信息
+            if chat_count % 5 == 0:
+                key_info = extract_key_information(chat_history, base_url, model, api_key, temperature, max_tokens)
+                if key_info:
+                    record_result = record_key_information(key_info)
+                    print(f"\n{record_result}")
+
+            max_iterations = 10
+            iteration = 0
+
+            while iteration < max_iterations:
+                iteration += 1
+                print("\nAI: ", end='', flush=True)
+                start_time = time.time()
+
+                response_text = call_llm(
+                    chat_history,
+                    base_url,
+                    model,
+                    api_key,
+                    temperature,
+                    max_tokens
+                )
+
+                end_time = time.time()
+
+                if not response_text:
+                    print("\n错误: 未能获取AI响应，请检查配置和网络连接")
+                    break
+
+                chat_history.append({"role": "assistant", "content": response_text})
+
+                tool_calls = parse_tool_calls(response_text)
+                skill_calls = parse_skill_calls(response_text)
+
+                if tool_calls:
+                    for tool_call in tool_calls:
+                        print(f"\n[正在执行工具: {tool_call.get('name')}]")
+                        result = execute_tool_call(tool_call)
+                        print(f"[工具执行结果]\n{result}")
+
+                        tool_result_message = f"工具执行结果:\n{result}"
+                        chat_history.append({"role": "user", "content": tool_result_message})
+                elif skill_calls:
+                    for skill_call in skill_calls:
+                        skill_name = skill_call.get('name')
+                        if skill_name:
+                            print(f"[正在执行技能: {skill_name}]")
+                            skill_content = load_skill_content(skill_name)
+                            if skill_content:
+                                print(f"[技能加载完成]")
+                                # 将技能内容添加到聊天历史
+                                chat_history.append({"role": "system", "content": f"[技能内容]\n{skill_content}"})
+                else:
+                    time_taken = end_time - start_time
+                    tokens = count_tokens(response_text)
+                    print(f"\n[{time_taken:.2f}秒, {tokens} tokens]")
+                    break
+
+            print("\n" + "-" * 60)
+
+    except KeyboardInterrupt:
+        print("\n\n退出聊天...")
+        print("=" * 60)
+
+        history_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'chat_history.json')
+        with open(history_file, 'w', encoding='utf-8') as f:
+            json.dump(chat_history, f, ensure_ascii=False, indent=2)
+        print(f"聊天历史已保存到: {history_file}")
+        print("=" * 60)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,127 @@
+AI 聊天客户端初始化规范（init-spec skill）
+1. 技能基本信息
+json
+{
+  "skill_name": "AI终端聊天客户端",
+  "skill_id": "ai_chat_client_v1.0",
+  "version": "1.0.0",
+  "description": "基于Python标准库实现的终端AI聊天客户端，支持OpenAI兼容LLM流式对话、上下文维护、配置管理与历史记录保存",
+  "author": "开发团队",
+  "create_time": "2025-01-01",
+  "update_time": "2025-01-01",
+  "language": "Python 3.12+",
+  "dependencies": "无（仅使用Python标准库）"
+}
+2. 初始化依赖环境
+2.1 运行环境要求
+操作系统：Windows 10/11、Linux、macOS
+Python 版本：3.12 及以上
+外部服务：LM Studio / OpenAI 兼容 LLM API 服务
+2.2 目录结构规范
+plaintext
+项目根目录/
+├── .env                # 配置文件（必须）
+├── chat_client.py      # 主程序文件
+├── chat_history.json   # 自动生成的聊天历史
+└── test_chat_client.py # 单元测试文件
+2.3 配置文件（.env）初始化模板
+ini
+# LLM API基础地址（默认LM Studio地址）
+BASE_URL=http://localhost:1234/v1
+# 模型名称（必填）
+MODEL=your-model-name
+# API密钥（默认lm-studio）
+API_KEY=lm-studio
+# 温度参数 0-1，值越低越精准
+TEMPERATURE=0.7
+# 最大响应token数
+MAX_TOKENS=1000
+3. 初始化执行流程
+3.1 初始化步骤
+检查 Python 版本 → 确保≥3.12
+创建.env 配置文件 → 复制模板并填写模型信息
+启动 LLM 服务 → 启动 LM Studio 并加载模型
+运行主程序 → python chat_client.py
+验证初始化 → 查看终端欢迎界面是否正常显示
+3.2 初始化成功判定
+程序无报错启动
+显示模型、服务器信息
+可正常接收用户输入
+可调用 LLM 并流式输出响应
+4. 核心模块初始化规范
+4.1 环境配置模块（load_env）
+初始化目标：读取并解析.env配置
+异常处理：文件不存在则提示并退出
+输出：配置字典（BASE_URL/MODEL/API_KEY 等）
+4.2 LLM 通信模块（call_llm）
+初始化目标：建立 HTTP/HTTPS 连接
+接口规范：兼容POST /chat/completions
+响应格式：支持 Server-Sent Events 流式输出
+异常处理：连接失败、JSON 解析错误自动捕获
+4.3 聊天管理模块
+初始化目标：创建聊天上下文
+默认系统提示：你是一个智能助手，擅长帮助用户解决问题和进行对话。
+历史存储：内存列表 + 退出时 JSON 持久化
+4.4 工具函数模块
+count_tokens()：基于空格的简易 Token 估算
+流式打印：实时输出、自动刷新
+5. 初始化校验与测试
+5.1 单元测试初始化
+执行命令：
+bash
+运行
+python -m unittest test_chat_client.py -v
+校验项：
+Token 计数功能
+环境配置加载
+聊天数据格式
+JSON 文件读写
+5.2 功能初始化校验
+空输入处理 → 提示有效消息
+正常对话 → AI 可正常回复
+上下文对话 → 多轮对话连贯
+Ctrl+C 退出 → 自动保存历史
+性能统计 → 显示时间 / Token / 速度
+6. 初始化异常处理规范
+表格
+异常场景	处理方式	恢复方案
+.env 文件不存在	打印错误并退出	复制模板创建.env
+LLM 服务未启动	提示连接失败	启动 LM Studio / 检查地址
+无效配置参数	自动使用默认值	修正.env 配置
+网络中断	捕获异常不崩溃	恢复网络后重试
+JSON 解析错误	忽略无效响应块	不影响主流程
+7. 启动与退出规范
+7.1 启动命令
+bash
+运行
+python chat_client.py
+7.2 退出方式
+指令退出：输入exit/quit/退出
+快捷键退出：Ctrl+C（自动保存聊天历史）
+7.3 输出文件
+chat_history.json：程序退出时自动生成，保存完整对话
+8. 接口初始化规范
+8.1 内部函数接口
+python
+运行
+# 加载环境配置
+env = load_env() -> dict
+
+# 调用LLM接口
+response = call_llm(messages, base_url, model, api_key, temperature, max_tokens) -> str
+
+# Token估算
+tokens = count_tokens(text) -> int
+8.2 外部 API 接口
+请求地址：{BASE_URL}/chat/completions
+请求方式：POST
+认证方式：Bearer Token
+响应格式：流式 SSE
+9. 初始化完成标准
+程序可正常启动、无报错
+配置文件读取成功
+LLM 连接正常
+可收发消息、流式输出
+上下文维护正常
+退出自动保存聊天历史
+单元测试全部通过
